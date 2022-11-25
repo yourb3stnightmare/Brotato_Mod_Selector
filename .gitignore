@@ -1,5 +1,8 @@
 # directories
-packs
+packs/*
 
 # file types
 *.zip
+
+# files
+Brotato_Mod_Selector.json

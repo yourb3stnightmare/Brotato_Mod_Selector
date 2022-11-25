@@ -1,49 +1,55 @@
 Add-Type -AssemblyName System.Windows.Forms
 
-$ConfigFile="$PSScriptRoot\Brotato_Mod_Selector.json"
-$ConfigTable=@{}
-$ConfigTable.Add("modpath", "$PSScriptRoot\packs")
-$ConfigTable.Add("gamepath", "")
+$DefaultPackDirStr = "$PSScriptRoot\packs"
+$DefaultBrotatoSteamAppIdStr = "1942280"
+$ConfigFileStr="$PSScriptRoot\Brotato_Mod_Selector.json"
 
-If( Test-Path -Path "$ConfigFile" )
+# Attempt to get the Steam install location from the registry 64-bit OS location
+$SteamInstallPathStr = (Get-ItemPropertyValue -ErrorAction SilentlyContinue -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -Name "InstallPath" | Out-String).Trim()
+# If that fails, try the 32-bit OS location
+if ($SteamInstallPathStr -eq "") 
 {
-    $ConfigTable=Get-Content -Path "$ConfigFile" | ConvertFrom-Json
+    $SteamInstallPathStr = (Get-ItemPropertyValue -ErrorAction SilentlyContinue -Path "HKLM:\SOFTWARE\Valve\Steam" -Name "InstallPath" | Out-String).Trim()
 }
-$gamepathStr = $ConfigTable.gamepath.ToString()
-$gamepathStr = $gamepathStr.Trim()
-If( $gamepathStr -eq "" )
+if ($SteamInstallPathStr -eq "")
 {
-    # Get Game exe path
-    $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
-    $FileBrowser.FileName="Brotato.exe"
-    echo "--- Locate Brotato executable ---"
-    $null = $FileBrowser.ShowDialog()
-    $gamepathStr = Out-String -InputObject $FileBrowser.FileName | Split-Path
-    $ConfigTable.gamepath = $gamepathStr
-} 
-echo "Using Brotato directory: $gamepathStr`n"
+    echo "Steam path not found in registry. Is it installed?"
+    exit 1
+}
+$SteamExe = "$SteamInstallPathStr\Steam.exe"
+
+$ConfigTable=@{}
+$ConfigTable.Add("ModPackPath", $DefaultPackDirStr)
+$ConfigTable.Add("BrotatoSteamAppId", $DefaultBrotatoSteamAppIdStr)
+
+# Load previously used modpack location from JSON
+If( Test-Path -Path "$ConfigFileStr" )
+{
+    $ConfigTable=Get-Content -Path "$ConfigFileStr" | ConvertFrom-Json
+}
+$ModPathStr = (Out-String -InputObject $ConfigTable.ModPackPath).Trim()
+If( $ModPathStr -eq "" )
+{
+    $ModPathStr = $DefaultPackDirStr
+}
+$BrotatoSteamAppIdStr = (Out-String -InputObject $ConfigTable.BrotatoSteamAppId).Trim()
+If( $BrotatoSteamAppIdStr -eq "" )
+{
+    $BrotatoSteamAppIdStr = $DefaultBrotatoSteamAppIdStr
+}
 
 # Select mod pck file
-$modpathStr = (Out-String -InputObject $ConfigTable.modpath).Trim()
-If( $modpathStr -eq "" )
-{
-    $modpathStr=$PSScriptRoot
-}
-$FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = "$modpathStr" }
+$FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = "$ModPathStr" }
 $FileBrowser.FileName="Modded_Brotato.pck"
 echo "--- Select modded Brotato pck file to install ---"
 $null = $FileBrowser.ShowDialog()
 $ModPck = (Out-String -InputObject $FileBrowser.FileName).Trim()
-$ConfigTable.modpath = Split-Path -Path "$ModPck"
+$ConfigTable.ModPackPath = Split-Path -Path "$ModPck"
 
 If ( $ModPck -ne "Modded_Brotato.pck")
 {
-    $ConfigTable | ConvertTo-Json | Out-File -FilePath "$ConfigFile"
-    Copy-Item -Force -Path "$ModPck" -Destination "$gamepathStr\Brotato.pck"
-    $tempForm = New-Object System.Windows.Forms.Form
-    $tempForm.TopMost = 1
-    #[System.Windows.Forms.MessageBox]::Show($tempForm, "Installed pack file:`n$ModPck`n`nTo location:`n$gamepathStr\Brotato.pck", "Success")
-	echo "Installed pack file:`n$ModPck`n`nTo location:`n$gamepathStr\Brotato.pck"
-	echo "Launching Brotato"
-	Invoke-Expression "$PSScriptRoot\Brotato.url"
+    $ConfigTable | ConvertTo-Json | Out-File -FilePath "$ConfigFileStr"
+    echo "Launching Brotato"
+    & "$SteamExe" -applaunch $BrotatoSteamAppIdStr --main-pack "$ModPck"
+    exit 0
 }
