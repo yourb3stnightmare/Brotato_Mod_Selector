@@ -1,8 +1,12 @@
 # directories
 packs/*
+__pycache__
+build
+dist
 
 # file types
 *.zip
+*.spec
 
 # files
 Brotato_Mod_Selector.json
