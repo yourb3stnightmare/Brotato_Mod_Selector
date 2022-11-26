@@ -3,10 +3,19 @@ packs/*
 __pycache__
 build
 dist
+.vs
+Debug
+Release
+x64
 
 # file types
 *.zip
 *.spec
+*.vcxproj.filters
+*.vcxproj.user
+
+# other wildcards
+*.
 
 # files
 Brotato_Mod_Selector.json

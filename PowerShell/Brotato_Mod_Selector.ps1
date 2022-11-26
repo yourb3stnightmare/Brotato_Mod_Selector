@@ -24,8 +24,8 @@ $ConfigTable.Add("BrotatoSteamAppId", $DefaultBrotatoSteamAppIdStr)
 
 # Load previously used modpack location from JSON
 If( Test-Path -Path "$ConfigFileStr" )
-{
     $ConfigTable=Get-Content -Path "$ConfigFileStr" | ConvertFrom-Json
+{
 }
 $ModPathStr = (Out-String -InputObject $ConfigTable.ModPackPath).Trim()
 If( $ModPathStr -eq "" )
